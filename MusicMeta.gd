@@ -82,6 +82,11 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 							match mime_type:
 								"image/png":
 									img.load_png_from_buffer(image_bytes)
+								"image/jpeg":
+									img.load_jpg_from_buffer(image_bytes)
+								_:
+									printerr("MusicMeta.get_metadata_mp3(): ERROR: mime type ", mime_type, " not yet supported...")
+									
 							t.set_image(img)
 							meta.cover = t
 		idx += size
@@ -90,12 +95,17 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 
 
 func get_string_from_data(data, idx, size):
+	var ret
 	if size > 3 and Array(data.slice(idx, idx + 3)).hash() == [1, 0xff, 0xfe].hash():
 		# Null-terminated string of ucs2 chars
-		return get_string_from_ucs2(data.slice(idx + 3, idx + size))
+		ret = get_string_from_ucs2(data.slice(idx + 3, idx + size))
 	if data[idx] == 0:
 		# Simple utf8 string
-		return data.slice(idx + 1, idx + size).get_string_from_utf8()
+		ret = data.slice(idx + 1, idx + size).get_string_from_utf8()
+	if ret:
+		return ret
+	else:
+		return ""
 
 # Syncsafe uses 0x80 multiplier otherwise use 0x100 multiplier
 func bytes_to_int(bytes: Array, is_syncsafe = true):
