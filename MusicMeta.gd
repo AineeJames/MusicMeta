@@ -32,6 +32,10 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 	if id != "ID3":
 		meta.error = "NOT ID3"
 		return
+	var v = "ID3v2.%d.%d" % [header[3], header[4]]
+	if v != "ID3v2.3.0":
+		meta.error = v + "is not yet supposted :("
+		return meta
 	var flags = header[5]
 	var _unsync = flags & 0x80 > 0
 	var extended = flags & 0x40 > 0
