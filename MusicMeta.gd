@@ -7,6 +7,7 @@ class MusicMetadata:
 	var album: String
 	var comments: String
 	var year: int
+	var artist: String
 	var cover: ImageTexture
 	
 	func print_info():
@@ -17,6 +18,7 @@ class MusicMetadata:
 		print("comments: ", comments)
 		print("year: ", year)
 		print("cover: ", cover)
+		print("artist: ", artist)
 		
 func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 	var meta: MusicMetadata = MusicMetadata.new()
@@ -55,6 +57,8 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 				meta.comments = get_string_from_data(data, idx, size)
 			"TYER":
 				meta.year = int(get_string_from_data(data, idx, size))
+			"TPE1":
+				meta.artist = get_string_from_data(data, idx, size)
 			"APIC":
 				var pic_frame = data.slice(idx + 1, idx + size)
 				var zero1 = pic_frame.find(0)
