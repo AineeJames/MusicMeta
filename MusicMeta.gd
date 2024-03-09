@@ -26,12 +26,12 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 	
 	if data.size() < 10:
 		meta.error = "NOT ID3"
-		return
+		return meta
 	var header = data.slice(0, 10)
 	var id = header.slice(0, 3).get_string_from_ascii()
 	if id != "ID3":
 		meta.error = "NOT ID3"
-		return
+		return meta
 	var v = "ID3v2.%d.%d" % [header[3], header[4]]
 	if v != "ID3v2.3.0":
 		meta.error = v + "is not yet supposted :("
@@ -50,6 +50,9 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 		var frame_id = data.slice(idx, idx + 4).get_string_from_ascii()
 		var size = bytes_to_int(data.slice(idx + 4, idx + 8), frame_id != "APIC")
 		idx += 10
+		if not data:
+			meta.error = "data null"
+			return meta
 		match frame_id:
 			"TBPM":
 				meta.bpm = int(get_string_from_data(data, idx, size))
