@@ -88,6 +88,8 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 									img.load_png_from_buffer(image_bytes)
 								"image/jpeg":
 									img.load_jpg_from_buffer(image_bytes)
+								"image/jpg":
+									img.load_jpg_from_buffer(image_bytes)
 								_:
 									printerr("MusicMeta.get_metadata_mp3(): ERROR: mime type ", mime_type, " not yet supported...")
 									
