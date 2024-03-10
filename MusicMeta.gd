@@ -47,12 +47,16 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 		idx += bytes_to_int(data.slice(idx, idx + 4))
 	# Now idx points to the start of the first frame
 	while idx < end:
-		var frame_id = data.slice(idx, idx + 4).get_string_from_ascii()
-		var size = bytes_to_int(data.slice(idx + 4, idx + 8), frame_id != "APIC")
-		idx += 10
 		if not data:
 			meta.error = "data null"
 			return meta
+		var frame_id = data.slice(idx, idx + 4).get_string_from_ascii()
+		var size = bytes_to_int(data.slice(idx + 4, idx + 8), frame_id != "APIC")
+		# if greater than byte, not sync safe number
+		if size > 255:
+			size = bytes_to_int(data.slice(idx + 4, idx + 8), false)
+			
+		idx += 10
 		match frame_id:
 			"TBPM":
 				meta.bpm = int(get_string_from_data(data, idx, size))
