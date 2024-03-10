@@ -53,7 +53,7 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 		var frame_id = data.slice(idx, idx + 4).get_string_from_ascii()
 		var size = bytes_to_int(data.slice(idx + 4, idx + 8), frame_id != "APIC")
 		# if greater than byte, not sync safe number
-		if size > 255:
+		if size > 0x7f:
 			size = bytes_to_int(data.slice(idx + 4, idx + 8), false)
 			
 		idx += 10
