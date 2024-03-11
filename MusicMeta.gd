@@ -1,7 +1,7 @@
 extends Node
 
 class MusicMetadata:
-	var error: String
+	var error: Error
 	var bpm: int
 	var title: String
 	var album: String
@@ -11,7 +11,6 @@ class MusicMetadata:
 	var cover: ImageTexture
 	
 	func print_info():
-		print("error: ", error)
 		print("bpm: ", bpm)
 		print("title: ", title)
 		print("album: ", album)
@@ -20,22 +19,30 @@ class MusicMetadata:
 		print("cover: ", cover)
 		print("artist: ", artist)
 		
-func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
+func get_mp3_metadata(stream: AudioStreamMP3) -> MusicMetadata:
 	var meta: MusicMetadata = MusicMetadata.new()
 	var data: PackedByteArray = stream.data
 	
+	meta.error = OK
+	
 	if data.size() < 10:
-		meta.error = "NOT ID3"
+		meta.error = FAILED
+		push_error("Error: Stream data is too small. ")
 		return meta
+	
 	var header = data.slice(0, 10)
 	var id = header.slice(0, 3).get_string_from_ascii()
 	if id != "ID3":
-		meta.error = "NOT ID3"
+		meta.error = FAILED
+		push_error("Error: Stream data's header '%s' is not ID3."%id)
 		return meta
+		
 	var v = "ID3v2.%d.%d" % [header[3], header[4]]
 	if v != "ID3v2.3.0":
-		meta.error = v + "is not yet supposted :("
+		meta.error = FAILED
+		push_error("Error: Found version '%s' from streams data; must be 'ID3v2.3.0'."%v)
 		return meta
+	
 	var flags = header[5]
 	var _unsync = flags & 0x80 > 0
 	var extended = flags & 0x40 > 0
@@ -45,18 +52,21 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 	var end = idx + bytes_to_int(header.slice(6, 10))
 	if extended:
 		idx += bytes_to_int(data.slice(idx, idx + 4))
-	# Now idx points to the start of the first frame
+		
 	while idx < end:
 		if not data:
-			meta.error = "data null"
+			meta.error = FAILED
+			push_error("Error: Stream data is null.")
 			return meta
+
 		var frame_id = data.slice(idx, idx + 4).get_string_from_ascii()
 		var size = bytes_to_int(data.slice(idx + 4, idx + 8), frame_id != "APIC")
-		# if greater than byte, not sync safe number
+		
+		# if greater than byte, not sync safe number (0b0111_1111 -> 0x7f)
 		if size > 0x7f:
 			size = bytes_to_int(data.slice(idx + 4, idx + 8), false)
-			
 		idx += 10
+		
 		match frame_id:
 			"TBPM":
 				meta.bpm = int(get_string_from_data(data, idx, size))
@@ -82,17 +92,16 @@ func get_metadata_mp3(stream: AudioStreamMP3) -> MusicMetadata:
 							var zero2 = pic_frame.find(0, zero1)
 							var image_bytes = pic_frame.slice(zero2 + 1, pic_frame.size())
 							var img = Image.new()
-							var t: ImageTexture = ImageTexture.new()
 							match mime_type:
 								"image/png":
 									img.load_png_from_buffer(image_bytes)
-								"image/jpeg":
-									img.load_jpg_from_buffer(image_bytes)
-								"image/jpg":
+								"image/jpeg", "image/jpg":
 									img.load_jpg_from_buffer(image_bytes)
 								_:
-									printerr("MusicMeta.get_metadata_mp3(): ERROR: mime type ", mime_type, " not yet supported...")
-									
+									meta.error = FAILED
+									push_error("MusicMeta.get_metadata_mp3(): ERROR: mime type ", mime_type, " not yet supported...")
+									return meta
+							var t: ImageTexture = ImageTexture.new()
 							t.set_image(img)
 							meta.cover = t
 		idx += size
